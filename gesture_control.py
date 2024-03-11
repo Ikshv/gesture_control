@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import logging
 import numpy as np
+from pythonosc import udp_client
 
 # Initialize logging
 logging.basicConfig(filename='gesture_face_recognition.log', level=logging.INFO)
@@ -30,6 +31,31 @@ I_LOVE_YOU_X_THRESHOLD = 0
 
 # Gesture history
 gesture_history = []
+
+# Initialize Sonic Pi OSC client
+osc_client = udp_client.SimpleUDPClient("127.0.0.1", 4560)  # Change IP and port accordingly
+
+# Function to send Sonic Pi OSC messages
+def send_sonic_pi_osc_message(message, gesture):
+    osc_client.send_message("/gesture", [message, gesture])
+
+
+# Define postures based on detected gestures
+def apply_posture(gesture):
+    if gesture == "Open Hand Detected":
+        send_sonic_pi_osc_message("C3",gesture)
+    elif gesture == "Victory Sign Detected":
+        send_sonic_pi_osc_message("E3",gesture)
+    elif gesture == "Thumbs Up Detected":
+        send_sonic_pi_osc_message("G3",gesture)
+    elif gesture == "Thumbs Down Detected":
+        send_sonic_pi_osc_message("A3",gesture)
+    elif gesture == "Closed Fist Detected":
+        send_sonic_pi_osc_message("B3",gesture)
+    elif gesture == "Pointing Up Detected":
+        send_sonic_pi_osc_message("C4",gesture)
+    elif gesture == "I Love You Gesture Detected":
+        send_sonic_pi_osc_message("D4",gesture)
 
 def calculate_angle(a, b, c):
     """Calculate the angle between three points a, b, c where b is the vertex."""
@@ -287,19 +313,19 @@ while cap.isOpened():
                 
                 # Gesture recognition with updated logic
                 if is_open:
-                    current_gesture = f"Open Hand Detected"
+                    current_gesture = "Open Hand Detected"
                 elif is_victory_sign(hand_landmarks):
-                    current_gesture = f"Victory Sign Detected"
+                    current_gesture = "Victory Sign Detected"
                 elif is_thumbs_up(hand_landmarks):
-                    current_gesture = f"Thumbs Up Detected"
+                    current_gesture = "Thumbs Up Detected"
                 elif is_thumbs_down(hand_landmarks):
-                    current_gesture = f"Thumbs Down Detected"
+                    current_gesture = "Thumbs Down Detected"
                 elif is_closed_fist(hand_landmarks):
-                    current_gesture = f"Closed Fist Detected"
+                    current_gesture = "Closed Fist Detected"
                 elif is_pointing_up(hand_landmarks):
-                    current_gesture = f"Pointing Up Detected"
+                    current_gesture = "Pointing Up Detected"
                 elif is_i_love_you(hand_landmarks):
-                    current_gesture = f"I Love You Gesture Detected"
+                    current_gesture = "I Love You Gesture Detected"
 
                 # Add gesture to history
                 if current_gesture:
@@ -313,6 +339,10 @@ while cap.isOpened():
                     print(f"{current_gesture}")
                     last_detected_gesture = current_gesture
                     print(f"Number of raised fingers: {raised_fingers_count}\n")
+
+                # Apply posture based on detected gesture
+                if current_gesture:
+                    apply_posture(current_gesture)
 
         if pose_results.pose_landmarks:
             mp_drawing.draw_landmarks(image, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
